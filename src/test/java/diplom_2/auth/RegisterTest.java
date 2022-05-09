@@ -11,7 +11,7 @@ import static org.hamcrest.Matchers.hasLength;
 public class RegisterTest {
     User user;
     UserClient userClient;
-    ValidatableResponse success;
+    ValidatableResponse response;
 
 
     @Before
@@ -22,8 +22,8 @@ public class RegisterTest {
 
     @After
     public void tearDown() {
-        if (success != null) {
-            String token = User.getAccessToken(success);
+        if (response.extract().body().path("success").equals(true)) {
+            String token = User.getAccessToken(response);
             user.setAccessToken(token);
             userClient.deleteUser(user);
         }
@@ -31,21 +31,20 @@ public class RegisterTest {
 
     @Test
     public void createUniqueUserTest() {
-        success = userClient.createUser(user);
-        success.assertThat()
+        response = userClient.createUser(user);
+        response.assertThat()
                 .statusCode(200).and()
                 .body("success", equalTo(true)).and()
                 .body("user.email", equalTo(user.getEmail())).and()
                 .body("user.name", equalTo(user.getName())).and()
-                .body("accessToken", hasLength(178)).and()
                 .body("refreshToken", hasLength(80));
     }
 
     @Test
     public void createNotUniqueUserTest() {
-        success = userClient.createUser(user);
-        ValidatableResponse fail = userClient.createUser(user);
-        fail.assertThat()
+        response = userClient.createUser(user);
+        ValidatableResponse response = userClient.createUser(user);
+        response.assertThat()
                 .statusCode(403).and()
                 .body("success", equalTo(false)).and()
                 .body("message", equalTo("User already exists"));
@@ -54,8 +53,8 @@ public class RegisterTest {
     @Test
     public void createInvalidUserTest() {
         user.setName(null);
-        ValidatableResponse fail = userClient.createUser(user);
-        fail.assertThat()
+        response = userClient.createUser(user);
+        response.assertThat()
                 .statusCode(403).and()
                 .body("success", equalTo(false)).and()
                 .body("message", equalTo("Email, password and name are required fields"));
